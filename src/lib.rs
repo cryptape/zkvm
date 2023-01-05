@@ -14,9 +14,17 @@ pub struct ProcessorRow {
     pub registers: [u32; 32],
 }
 
+#[derive(Debug, Default)]
+pub struct InstructionRow {
+    pub pc: u32,
+    pub ci: u64,
+    pub ni: u64,
+}
+
 pub struct Trace {
     pub cycles: u32,
     pub processor: Vec<ProcessorRow>,
+    pub instruction: Vec<InstructionRow>,
 }
 
 impl Trace {
@@ -24,6 +32,7 @@ impl Trace {
         Self {
             cycles: 0,
             processor: Vec::new(),
+            instruction: Vec::new(),
         }
     }
 
@@ -63,15 +72,27 @@ impl Trace {
         self.cycles += 1;
         return Ok(());
     }
+
+    fn generate_instruction_table(&mut self) {
+        for prow in &self.processor {
+            let irow = InstructionRow {
+                pc: prow.pc,
+                ci: prow.ci,
+                ni: prow.ni,
+            };
+            self.instruction.push(irow)
+        }
+        self.instruction.sort_by(|a, b| a.pc.cmp(&b.pc));
+    }
 }
 
-pub struct PProfMachine<'a, Inner> {
+pub struct ZkMachine<'a, Inner> {
     pub inner: DefaultMachine<'a, Inner>,
     pub trace: Trace,
 }
 
 impl<R: Register, M: Memory<REG = R>, Inner: SupportMachine<REG = R, MEM = M>> CoreMachine
-    for PProfMachine<'_, Inner>
+    for ZkMachine<'_, Inner>
 {
     type REG = <Inner as CoreMachine>::REG;
     type MEM = <Inner as CoreMachine>::MEM;
@@ -114,7 +135,7 @@ impl<R: Register, M: Memory<REG = R>, Inner: SupportMachine<REG = R, MEM = M>> C
 }
 
 impl<R: Register, M: Memory<REG = R>, Inner: SupportMachine<REG = R, MEM = M>> ckb_vm::Machine
-    for PProfMachine<'_, Inner>
+    for ZkMachine<'_, Inner>
 {
     fn ecall(&mut self) -> Result<(), Error> {
         self.inner.ecall()
@@ -126,7 +147,7 @@ impl<R: Register, M: Memory<REG = R>, Inner: SupportMachine<REG = R, MEM = M>> c
 }
 
 impl<'a, R: Register, M: Memory<REG = R>, Inner: SupportMachine<REG = R, MEM = M>>
-    PProfMachine<'a, Inner>
+    ZkMachine<'a, Inner>
 {
     pub fn new(inner: DefaultMachine<'a, Inner>, trace: Trace) -> Self {
         Self {
@@ -151,6 +172,7 @@ impl<'a, R: Register, M: Memory<REG = R>, Inner: SupportMachine<REG = R, MEM = M
             self.inner.step(&mut decoder)?;
             self.trace.step_done(&mut self.inner, &mut decoder)?;
         }
+        self.trace.generate_instruction_table();
         Ok(self.inner.exit_code())
     }
 }

@@ -30,7 +30,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .instruction_cycle_func(&|_| 0)
         .build();
     let tables = zkvm::Trace::new();
-    let mut machine = zkvm::PProfMachine::new(default_machine, tables);
+    let mut machine = zkvm::ZkMachine::new(default_machine, tables);
     let mut args = vec![];
     args.append(
         &mut fl_arg
@@ -42,5 +42,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let exit = machine.run();
     println!("{:?}", exit);
     println!("processor_table_rows={:?}", machine.trace.processor.len());
+    println!("instruction_table_rows={:?}", machine.trace.instruction.len());
     Ok(())
 }
