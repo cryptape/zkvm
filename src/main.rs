@@ -41,6 +41,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     machine.load_program(&code, &args)?;
     let exit = machine.run();
     println!("{:?}", exit);
-    println!("processor_table_rows={:?}", machine.trace.rows.len());
+    println!("processor_table_rows={:?}", machine.trace.processor.len());
     Ok(())
 }

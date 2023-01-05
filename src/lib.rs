@@ -3,23 +3,27 @@ use ckb_vm::machine::DefaultMachine;
 use ckb_vm::memory::Memory;
 use ckb_vm::{Bytes, CoreMachine, Error, Register, SupportMachine};
 
-pub struct TraceRow {
+#[derive(Debug, Default)]
+pub struct ProcessorRow {
     pub cycles: u32,
     pub pc: u32,
-    pub ci: u64, // Current instruction
+    // Current instruction.
+    pub ci: u64,
+    // Next instruction. Program is done when ni == OP_UNLOADED.
+    pub ni: u64,
     pub registers: [u32; 32],
 }
 
 pub struct Trace {
     pub cycles: u32,
-    pub rows: Vec<TraceRow>,
+    pub processor: Vec<ProcessorRow>,
 }
 
 impl Trace {
     pub fn new() -> Self {
         Self {
             cycles: 0,
-            rows: Vec::new(),
+            processor: Vec::new(),
         }
     }
 
@@ -30,17 +34,15 @@ impl Trace {
     ) -> Result<(), Error> {
         let pc = machine.pc().clone();
         let inst = decoder.decode(machine.memory_mut(), pc.to_u64())?;
-        let mut row_registers = [0u32; 32];
+        let mut processor_row = ProcessorRow::default();
+        processor_row.cycles = self.cycles;
+        processor_row.pc = pc.to_u32();
+        processor_row.ci = inst;
+        processor_row.ni = 0;
         for i in 0..32 {
-            row_registers[i] = machine.registers()[i].to_u32();
+            processor_row.registers[i] = machine.registers()[i].to_u32();
         }
-        let row = TraceRow {
-            cycles: self.cycles,
-            pc: pc.to_u32(),
-            ci: inst,
-            registers: row_registers,
-        };
-        self.rows.push(row);
+        self.processor.push(processor_row);
         return Ok(());
     }
 
@@ -49,10 +51,15 @@ impl Trace {
         machine: &mut DefaultMachine<'a, Inner>,
         decoder: &mut Decoder,
     ) -> Result<(), Error> {
-        let pc = machine.pc().to_u64();
-        let inst = decoder.decode(machine.memory_mut(), pc)?;
-        let opcode = ckb_vm::instructions::extract_opcode(inst);
-        let _ = opcode;
+        if machine.running() {
+            let pc = machine.pc().to_u64();
+            let inst = decoder.decode(machine.memory_mut(), pc)?;
+            self.processor.last_mut().unwrap().ni = inst;
+        } else {
+            self.processor.last_mut().unwrap().ni = ckb_vm::instructions::blank_instruction(
+                ckb_vm_definitions::instructions::OP_UNLOADED,
+            );
+        }
         self.cycles += 1;
         return Ok(());
     }

@@ -370,5 +370,6 @@ name = "zkvm"
 version = "0.1.0"
 dependencies = [
  "ckb-vm",
+ "ckb-vm-definitions",
  "clap",
 ]
