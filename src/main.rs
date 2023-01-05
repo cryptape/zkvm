@@ -29,7 +29,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let default_machine = ckb_vm::DefaultMachineBuilder::new(default_core_machine)
         .instruction_cycle_func(&|_| 0)
         .build();
-    let tables = zkvm::Tables::new();
+    let tables = zkvm::Trace::new();
     let mut machine = zkvm::PProfMachine::new(default_machine, tables);
     let mut args = vec![];
     args.append(
@@ -41,6 +41,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     machine.load_program(&code, &args)?;
     let exit = machine.run();
     println!("{:?}", exit);
-    println!("processor_table_rows={:?}", machine.tables.processor.len());
+    println!("processor_table_rows={:?}", machine.trace.rows.len());
     Ok(())
 }
