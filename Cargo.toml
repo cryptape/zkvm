@@ -4,5 +4,14 @@ version = "0.1.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[lib]
+path = "src/lib.rs"
+
+[[bin]]
+name = "zkvm"
+path = "src/main.rs"
 
 [dependencies]
+ckb-vm = { version = "=0.22.0" }
+ckb-vm-definitions = { version = "=0.22.0" }
+clap = "2.33"
