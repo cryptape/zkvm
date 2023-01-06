@@ -22,26 +22,22 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let code_data = std::fs::read(fl_bin)?;
     let code = ckb_vm::Bytes::from(code_data);
     let isa = ckb_vm::ISA_IMC;
-    let default_core_machine = ckb_vm::DefaultCoreMachine::<
-        u32,
-        ckb_vm::memory::flat::FlatMemory<u32>,
-    >::new(isa, ckb_vm::machine::VERSION1, 1 << 32);
-    let default_machine = ckb_vm::DefaultMachineBuilder::new(default_core_machine)
-        .instruction_cycle_func(&|_| 0)
-        .build();
+    let default_core_machine = ckb_vm::DefaultCoreMachine::<u32, ckb_vm::memory::flat::FlatMemory<u32>>::new(
+        isa,
+        ckb_vm::machine::VERSION1,
+        1 << 32,
+    );
+    let default_machine =
+        ckb_vm::DefaultMachineBuilder::new(default_core_machine).instruction_cycle_func(&|_| 0).build();
     let tables = zkvm::Trace::new();
     let mut machine = zkvm::ZkMachine::new(default_machine, tables);
     let mut args = vec![];
-    args.append(
-        &mut fl_arg
-            .iter()
-            .map(|x| ckb_vm::Bytes::from(x.to_string()))
-            .collect(),
-    );
+    args.append(&mut fl_arg.iter().map(|x| ckb_vm::Bytes::from(x.to_string())).collect());
     machine.load_program(&code, &args)?;
     let exit = machine.run();
     println!("{:?}", exit);
     println!("processor_table_rows={:?}", machine.trace.processor.len());
     println!("instruction_table_rows={:?}", machine.trace.instruction.len());
+    println!("memory_table_rows={:?}", machine.trace.memory.len());
     Ok(())
 }
